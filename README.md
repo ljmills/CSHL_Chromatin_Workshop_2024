@@ -77,8 +77,8 @@ The database adopted in this course is under the reference: "Enhancer Chromatin 
 
 ## 1) Quality Control of Sequencing using FastQC/MultiQC
 - **Documentation**: *FastQC*: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/ & *MultiQC*: https://multiqc.info/
-`conda activate multiqc`
-`cd /grid/genomicscourse/home/beuchat/CSHL_Chromatin_Workshop_2024/data/subset/`
+`conda activate multiqc` <br />
+`cd /grid/genomicscourse/home/beuchat/CSHL_Chromatin_Workshop_2024/data/subset/` <br />
 - FastQC: ~3 -4 min <br /> 
 `fastqc *.fastq`
 - MultiQC: ~ 1 min <br />

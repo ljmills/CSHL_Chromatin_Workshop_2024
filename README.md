@@ -404,7 +404,7 @@ wc -l out.bed
 bedtools intersect -v -a SRR5063143_naive_H3K27ac_peaks.Peak -b SRR5063149_naive_H3K4me3_peaks.Peak > out.bed
 wc -l out.bed
 #the following command keeps only peaks present in file 2 but not 1
-bedtools intersect -b SRR5063143_naive_H3K27ac_peaks.Peak -a SRR5063149_naive_H3K4me3_peaks.Peak > out.bed
+bedtools intersect -v -b SRR5063143_naive_H3K27ac_peaks.Peak -a SRR5063149_naive_H3K4me3_peaks.Peak > out.bed
 wc -l out.bed
 
 ```

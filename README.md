@@ -393,12 +393,19 @@ However, presence/absence is still great to get a good idea about your data. <br
 
 ```bash
 conda activate basic_tools
+#how many peaks do we have?
+wc -l SRR5063143_naive_H3K27ac_peaks.Peak
+wc -l SRR5063149_naive_H3K4me3_peaks.Peak
+
 #the following command keeps only peaks present in both files.
-bedtools intersect -a ${file1} -b ${file2} > ${output}
+bedtools intersect -a SRR5063143_naive_H3K27ac_peaks.Peak -b SRR5063149_naive_H3K4me3_peaks.Peak > out.bed
+wc -l out.bed
 #the following command keeps only peaks present in file 1 but not 2
-bedtools intersect -v -a ${file1} -b ${file2} > ${output}
+bedtools intersect -v -a SRR5063143_naive_H3K27ac_peaks.Peak -b SRR5063149_naive_H3K4me3_peaks.Peak > out.bed
+wc -l out.bed
 #the following command keeps only peaks present in file 2 but not 1
-bedtools intersect -v -a ${file2} -b ${file1} > ${output}
+bedtools intersect -b SRR5063143_naive_H3K27ac_peaks.Peak -a SRR5063149_naive_H3K4me3_peaks.Peak > out.bed
+wc -l out.bed
 
 ```
 

@@ -57,7 +57,13 @@ GEO page where the data is deposited: https://www.ncbi.nlm.nih.gov/geo/query/acc
  0.7.3) `conda install -c bioconda seqtk` *download packages* <br /> 
 
 ## 1) Download FASTQ files from GEO/SRA
-
+- Head to the GEO page, the SRA Run Selector at the bottom of the page.
+- Select the FASTQ files you want to download and then create an Accession List.
+- Put that accession list onto MSI
+- download fastq with prefetch then convert to fastq with fasterq-dump
+- `cat SRR_Acc_List.txt | xargs prefetch`
+- `cat SRR_Acc_List.txt | xargs fasterq-dump`
+  
 ## 1) Quality Control of Sequencing using FastQC/MultiQC
 - Run FastQC on all fastq files to look at the quality of the sequencing data.
 - Make sure your chipseq conda environment is active and  you have loaded the fastqc module

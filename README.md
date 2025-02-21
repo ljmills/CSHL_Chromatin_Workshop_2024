@@ -35,7 +35,7 @@ GEO page where the data is deposited: https://www.ncbi.nlm.nih.gov/geo/query/acc
 ## 0) Interactive Session and Miniconda Setup 
 - You will want to start an interactive session to do these installation. 
 `srun --nodes=1 --ntasks-per-node=1 --mem=20g --time=4:00:00 -p wgs --pty bash -i`
-- Once that session is started we will install Miniconda. Download the script from the website into your MSI home directory (Linux x86) and run that script.
+- Once that session is started we will install Miniconda . Download the script from the website (link above) into your MSI home directory (Linux x86) and run that script.
 - create a chipseq conda enviroment
 `conda create -n chipseq`
 - activate this conda enviroment
@@ -43,23 +43,26 @@ GEO page where the data is deposited: https://www.ncbi.nlm.nih.gov/geo/query/acc
   - You will be able to install the tools we need for this workshop inside of this conda enviroment. 
 
 
-## Install deepTools & MultiQC <br />
- **0.2)** Install deepTools <br />
- 0.2.2) `conda activate chipseq` *activate new environment* <br />
- 0.2.3) `conda install -c bioconda deeptools` *download packages* <br /> 
- **0.3)** Install MultiQC <br /> 
- 0.3.3) `conda install -c bioconda multiqc` *download packages* <br /> 
- **0.4)** Install chromap <br /> 
- 0.4.3) `conda install -c bioconda chromap` *download packages* <br /> 
+## 0.1)Install Software Not Available in Modules <br />
+** Install deepTools <br />
+ - `conda activate chipseq` *activate new environment if not already activated* <br />
+ - `conda install -c bioconda deeptools` *download packages* <br /> 
+** Install MultiQC <br /> 
+ - `conda install -c bioconda multiqc` *download packages* <br /> 
+** Install chromap <br /> 
+ - `conda install -c bioconda chromap` *download packages* <br /> 
 
- **0.6)** Install basic_tools <br /> 
- 0.6.3) `conda install -c bioconda seqkit dos2unix` *download packages* <br /> 
- 0.7.3) `conda install -c bioconda seqtk` *download packages* <br /> 
+** Install Other Tools <br /> 
+ - `conda install -c bioconda seqkit dos2unix` *download packages* <br />
+ - `conda install -c bioconda seqtk` *download packages* <br /> 
 
 ## 1) Download FASTQ files from GEO/SRA
 - Head to the GEO page, the SRA Run Selector at the bottom of the page.
 - Select the FASTQ files you want to download and then create an Accession List.
-- Put that accession list onto MSI
+- Put that accession list onto MSI (sftp, FileZilla, On Demand)
+- `module load sratoolkit/3.0.0` this will give you access to sra-tols
+- The first time you use sra-tools you will need to configure it
+  `vdb-config --prefetch-to-cwd` This will tell prefetch to download files to the current working directory
 - download fastq with prefetch then convert to fastq with fasterq-dump
 - `cat SRR_Acc_List.txt | xargs prefetch`
 - `cat SRR_Acc_List.txt | xargs fasterq-dump`
@@ -67,8 +70,9 @@ GEO page where the data is deposited: https://www.ncbi.nlm.nih.gov/geo/query/acc
 ## 1) Quality Control of Sequencing using FastQC/MultiQC
 - Run FastQC on all fastq files to look at the quality of the sequencing data.
 - Make sure your chipseq conda environment is active and  you have loaded the fastqc module
-- FastQC:  <br /> 
-`fastqc *.fastq`
+- FastQC:  <br />
+  `module load fastqc/0.12.1` 
+  `fastqc *.fastq` 
 - MultiQC: will combine all of your fastqc outputs into a single report <br />
 `multiqc *.zip`
 

@@ -59,12 +59,11 @@ GEO page where the data is deposited: https://www.ncbi.nlm.nih.gov/geo/query/acc
 ## 1) Download FASTQ files from GEO/SRA
 
 ## 1) Quality Control of Sequencing using FastQC/MultiQC
-- **Documentation**: *FastQC*: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/ & *MultiQC*: https://multiqc.info/ <br />
-`conda activate multiqc` <br />
-`cd /grid/genomicscourse/home/beuchat/CSHL_Chromatin_Workshop_2024/data/subset/` <br />
-- FastQC: ~3 -4 min <br /> 
+- Run FastQC on all fastq files to look at the quality of the sequencing data.
+- Make sure your chipseq conda environment is active and  you have loaded the fastqc module
+- FastQC:  <br /> 
 `fastqc *.fastq`
-- MultiQC: ~ 1 min <br />
+- MultiQC: will combine all of your fastqc outputs into a single report <br />
 `multiqc *.zip`
 
 ### 2) Processing data & Genome Mapping
@@ -73,11 +72,12 @@ GEO page where the data is deposited: https://www.ncbi.nlm.nih.gov/geo/query/acc
 - **2)** Remove duplicated reads
 - **3)** Perform the mapping. <br />
 
+- You will need a reference genome to align you data too. And like all high throughput sequence alignment tools Chromap needs a specalized index for each reference genome you might want to align too.
+- GRCh38 can be found here: `/common/bioref/ensembl/main/Homo_sapiens-113/GRCh38.p14`
+
 - Build the indexed genome ~ 1 min
 ```bash
-conda activate chromap
-cd /grid/genomicscourse/home/beuchat/CSHL_Chromatin_Workshop_2024/genome/
-chromap -i -r hg38_chr22.fa -o index
+chromap -i -r /common/bioref/ensembl/main/Homo_sapiens-113/GRCh38.p14/seq/genome.fa -o index
 ```
 - Flags:
 **-i**: indexing genome flag 

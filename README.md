@@ -1,8 +1,9 @@
-# Chromatin Workshop  12/8/2024
+# Chromatin Workshop  02/21/2025
 
 ## CSHL Fall 2024 Computational Genomics Course
 Welcome! This is the material and tutorials for the Chromatin Workshop.
 The database adopted in this course is under the reference: "Enhancer Chromatin and 3D Genome Architecture Changes from Naive to Primed Human Embryonic Stem Cell States". https://www.sciencedirect.com/science/article/pii/S2213671119301262?via%3Dihub <br />
+GEO page where the data is deposited: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE90680 <br />
 
 ## Guidelines:
 1) Setting up Conda <br />
@@ -21,59 +22,41 @@ The database adopted in this course is under the reference: "Enhancer Chromatin 
 ##
 
 ## Tools and Packages Required: <br />
-- deepTools: https://deeptools.readthedocs.io/en/develop  <br />
-- Samtools: https://www.htslib.org/  <br />
+- miniconda (python)  https://docs.anaconda.com/miniconda/install/ <br />
+- Sra-tools https://github.com/ncbi/sra-tools (module load sratoolkit/3.0.0)
+- deepTools: https://deeptools.readthedocs.io/en/develop <br />
+- Samtools: https://www.htslib.org/  (module load samtools/1.16.1-gcc-8.2.0-egljrr3) <br />
 - Chromap: https://github.com/haowenz/chromap <br />
-- bedtools: https://bedtools.readthedocs.io/en/latest/  <br />
-- MACS2: https://pypi.org/project/MACS2/  <br />
+- bedtools: https://bedtools.readthedocs.io/en/latest/ (module load bedtools2/2.31.0-gcc-8.2.0-7j35k74) <br />
+- MACS2: https://pypi.org/project/MACS2/ (module load macs/2.1.1)  <br />
+- FastQC: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/ (module load fastqc/0.12.1)
+- MultiQC: https://github.com/MultiQC/MultiQC
 
-## 0) Interactive Session and file setup
-- The data is miniaturized, so we can run it in real time using an interactive session.
-- Scripts are still provided for all of these in the directory
-
-- This works the same way as submitting a script, but in one line and with qlogin (for AGE)
-`qlogin -l mfree=5G -pe threads 8`
-- Now we will copy the files from the shared directory to your own directory to play with.
-`cp -r ~/../shared/CSHL_Chromatin_Workshop_2024 ~`
+## 0) Interactive Session and Miniconda Setup 
+- You will want to start an interactive session to do these installation. 
+`srun --nodes=1 --ntasks-per-node=1 --mem=20g --time=4:00:00 -p wgs --pty bash -i`
+- Once that session is started we will install Miniconda. Download the script from the website into your MSI home directory (Linux x86) and run that script.
+- create a chipseq conda enviroment
+`conda create -n chipseq`
+- activate this conda enviroment
+  `conda activate chipseq`
+  - You will be able to install the tools we need for this workshop inside of this conda enviroment. 
 
 
 ## Install deepTools & MultiQC <br />
-
-***Do not run!!***
-/grid/genomicscourse/home/shared/conda/miniconda3/bin/activate
-**0.1)** Install miniconda in your home directory <br />
-0.1.1) `wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh` *remember to change the permissions* <br />
-&#x1F538; check here for others versions: https://docs.conda.io/projects/miniconda/en/latest/ <br />
- 0.1.2) `bash Miniconda3-latest-Linux-x86_64.sh` *install miniconda* <br />
- 0.1.3) activate base: `source /grid/genomicscourse/home/shared/conda/miniconda3/bin/activate` *check if is installed conda list* <br />
  **0.2)** Install deepTools <br />
- 0.2.1) `conda create --name deeptools` *create a new environment* <br />
- 0.2.2) `conda activate deeptools` *activate new environment* <br />
+ 0.2.2) `conda activate chipseq` *activate new environment* <br />
  0.2.3) `conda install -c bioconda deeptools` *download packages* <br /> 
  **0.3)** Install MultiQC <br /> 
- 0.3.1) `conda create --name multiqc` *create a new environment* <br />
- 0.3.2) `conda activate fastqc multiqc` *activate new environment* <br />
  0.3.3) `conda install -c bioconda multiqc` *download packages* <br /> 
  **0.4)** Install chromap <br /> 
- 0.4.1) `conda create --name chromap` *create a new environment* <br />
- 0.4.2) `conda activate chromap` *activate new environment* <br />
  0.4.3) `conda install -c bioconda chromap` *download packages* <br /> 
- **0.5)** Install macs <br /> 
- 0.5.1) `conda create --name macs2` *create a new environment* <br />
- 0.5.2) `conda activate macs2` *activate new environment* <br />
- 0.5.3) `conda install -c bioconda macs2` *download packages* <br /> 
+
  **0.6)** Install basic_tools <br /> 
- 0.6.1) `conda create --name basic_tools` *create a new environment* <br />
- 0.6.2) `conda activate basic_tools` *activate new environment* <br />
- 0.6.3) `conda install -c bioconda bedtools samtools seqkit dos2unix` *download packages* <br /> 
+ 0.6.3) `conda install -c bioconda seqkit dos2unix` *download packages* <br /> 
+ 0.7.3) `conda install -c bioconda seqtk` *download packages* <br /> 
 
-**0.7)** *OPTIONAL* Install sra-tools and seqtk <br />
-- *you only need this if you want to prep the data yourself, but don't do it for this workshop*
- 0.7.1) `conda create --name sra_tools` *create a new environment* <br />
- 0.7.2) `conda activate sra_tools` *activate new environment* <br />
- 0.7.3) `conda install -c bioconda sra-tools seqtk` *download packages* <br /> 
-
-
+## 1) Download FASTQ files from GEO/SRA
 
 ## 1) Quality Control of Sequencing using FastQC/MultiQC
 - **Documentation**: *FastQC*: https://www.bioinformatics.babraham.ac.uk/projects/fastqc/ & *MultiQC*: https://multiqc.info/ <br />

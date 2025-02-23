@@ -34,7 +34,7 @@ GEO page where the data is deposited: https://www.ncbi.nlm.nih.gov/geo/query/acc
 
 ## 0) Interactive Session and Miniconda Setup 
 - You will want to start an interactive session to do these installation. 
-`srun --nodes=1 --ntasks-per-node=1 --mem=20g --time=4:00:00 -p wgs --pty bash -i`
+`srun --nodes=1 --ntasks-per-node=1 --mem=20g --time=4:00:00 -p agsmall --pty bash -i`
 - Once that session is started we will install Miniconda . Download the script from the website (link above) into your MSI home directory (Linux x86) and run that script.
 - create a chipseq conda enviroment
 `conda create -n chipseq`
@@ -57,6 +57,7 @@ GEO page where the data is deposited: https://www.ncbi.nlm.nih.gov/geo/query/acc
  - `conda install -c bioconda seqtk` *download packages* <br /> 
 
 ## 1) Download FASTQ files from GEO/SRA
+- Create a directory in /scratch.global for this data 
 - Head to the GEO page, the SRA Run Selector at the bottom of the page.
 - Select the FASTQ files you want to download and then create an Accession List.
 - Put that accession list onto MSI (sftp, FileZilla, On Demand)

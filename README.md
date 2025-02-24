@@ -25,7 +25,7 @@ GEO page where the data is deposited: https://www.ncbi.nlm.nih.gov/geo/query/acc
 - miniconda (python)  https://docs.anaconda.com/miniconda/install/ <br />
 - Sra-tools https://github.com/ncbi/sra-tools (module load sratoolkit/3.0.0)
 - deepTools: https://deeptools.readthedocs.io/en/develop <br />
-- Samtools: https://www.htslib.org/  (module load samtools/1.16.1-gcc-8.2.0-egljrr3) <br />
+- Samtools: https://www.htslib.org/  <br />
 - Chromap: https://github.com/haowenz/chromap <br />
 - bedtools: https://bedtools.readthedocs.io/en/latest/ (module load bedtools2/2.31.0-gcc-8.2.0-7j35k74) <br />
 - MACS2: https://pypi.org/project/MACS2/ (module load macs/2.1.1)  <br />
@@ -46,7 +46,9 @@ GEO page where the data is deposited: https://www.ncbi.nlm.nih.gov/geo/query/acc
 ## 0.1)Install Software Not Available in Modules <br />
 ** Install deepTools <br />
  - `conda activate chipseq` *activate new environment if not already activated* <br />
- - `conda install -c conda-forge -c bioconda deeptools` *download packages* <br /> 
+ - `conda install -c conda-forge -c bioconda deeptools` *download packages* <br />
+ ** Install Samtools
+ - `conda install -c bioconda samtools` <br />
 ** Install MultiQC <br /> 
  - `conda install -c bioconda multiqc` *download packages* <br />
 ** Install chromap <br /> 

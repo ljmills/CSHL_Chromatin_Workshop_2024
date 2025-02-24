@@ -46,9 +46,9 @@ GEO page where the data is deposited: https://www.ncbi.nlm.nih.gov/geo/query/acc
 ## 0.1)Install Software Not Available in Modules <br />
 ** Install deepTools <br />
  - `conda activate chipseq` *activate new environment if not already activated* <br />
- - `conda install -c bioconda deeptools` *download packages* <br /> 
+ - `conda install -c conda-forge -c bioconda deeptools` *download packages* <br /> 
 ** Install MultiQC <br /> 
- - `conda install -c bioconda multiqc` *download packages* <br /> 
+ - `conda install -c bioconda multiqc` *download packages* <br />
 ** Install chromap <br /> 
  - `conda install -c bioconda chromap` *download packages* <br /> 
 
@@ -57,16 +57,17 @@ GEO page where the data is deposited: https://www.ncbi.nlm.nih.gov/geo/query/acc
  - `conda install -c bioconda seqtk` *download packages* <br /> 
 
 ## 1) Download FASTQ files from GEO/SRA
-- Create a directory in /scratch.global for this data 
+- Create a directory in /scratch.global for this data `mkdir <yourWorkingDir>` then move into that directory `cd <yourWorkingDir>`
 - Head to the GEO page, the SRA Run Selector at the bottom of the page.
-- Select the FASTQ files you want to download and then create an Accession List.
+- Select the FASTQ files you want to download and then create an Accession List. You will want to download the data for the H3K27ac, H3K27me3 and input from the Naive Cells. 6 samples total. 
 - Put that accession list onto MSI (sftp, FileZilla, On Demand)
-- `module load sratoolkit/3.0.0` this will give you access to sra-tols
+- `module load sratoolkit/3.0.0` this will give you access to sra-tools
 - The first time you use sra-tools you will need to configure it
+  `vdb-config -i` 
   `vdb-config --prefetch-to-cwd` This will tell prefetch to download files to the current working directory
 - download fastq with prefetch then convert to fastq with fasterq-dump
-- `cat SRR_Acc_List.txt | xargs prefetch`
-- `cat SRR_Acc_List.txt | xargs fasterq-dump`
+- `cat SRR_Acc_List.txt | xargs prefetch` you should have 6 SRRXXXX directories
+- `cat SRR_Acc_List.txt | xargs fasterq-dump` you should have 6 .fastq files
   
 ## 1) Quality Control of Sequencing using FastQC/MultiQC
 - Run FastQC on all fastq files to look at the quality of the sequencing data.
@@ -83,45 +84,35 @@ GEO page where the data is deposited: https://www.ncbi.nlm.nih.gov/geo/query/acc
 - **2)** Remove duplicated reads
 - **3)** Perform the mapping. <br />
 
+### 2.1) Reference Genome
+- Genome assembly: GRCh38.p14 <br />
+&#x1F538; **Only the chromosome 22 human genome** (*only because it is one of the smallest!!*)
+- Chromosome 22 info : https://useast.ensembl.org/Homo_sapiens/Location/Chromosome?r=22 <br />
 - You will need a reference genome to align you data too. And like all high throughput sequence alignment tools Chromap needs a specalized index for each reference genome you might want to align too.
 - GRCh38 can be found here: `/common/bioref/ensembl/main/Homo_sapiens-113/GRCh38.p14`
 
-- Build the indexed genome ~ 1 min
+- Build the indexed genome ~ 1 min. Only run the chr22 Only command
 ```bash
-chromap -i -r /common/bioref/ensembl/main/Homo_sapiens-113/GRCh38.p14/seq/genome.fa -o index
+#chromap -i -r /common/bioref/ensembl/main/Homo_sapiens-113/GRCh38.p14/seq/genome.fa -o GRCh38_chromap_index
+chromap -i -r /scratch.global/ljmills/GCD8141/chr22Only/Homo_sapiens.GRCh38.dna.chromosome.22.fa -o chr22Only_GRCh38_chromap_index
+
 ```
 - Flags:
 **-i**: indexing genome flag 
 **-r**: reference genome
 **-o**: output name
 
-### 2.1) Reference Genome
-- Genome assembly: GRCh38.p14 <br />
-&#x1F538; **Only the chromosome 22 human genome** (*only because it is one of the smallest!!*)
-- Chromosome 22 info : https://useast.ensembl.org/Homo_sapiens/Location/Chromosome?r=22 <br />
+
 
 ### 2.2) Processing & mapping data 
 - Chromap: *~35 sec* <br />
 Chromap performs the remove duplicates, adapters and alignment using high throughput chromatin profiles. <br />
 ***If you use a different aligner you will need to do those steps yourself.***
+  Command for a single sample
 ```bash
-#THESE ARE NOT ABSOLUTE PATHS YOU NEED TO ADD TO THEM
-datadir="/grid/genomicscourse/home/beuchat/CSHL_Chromatin_Workshop_2024"
-dir="${datadir}/data/subset"
-genome=${datadir}/genome/hg38_chr22.fa #genome
-index=${datadir}/genome/index #index
-list=${datadir}/data/subset/sample.txt
+chromap --preset chip -x chr22Only_GRCh38_chromap_index -r /scratch.global/ljmills/GCD8141/chr22Only/Homo_sapiens.GRCh38.dna.chromosome.22.fa -q 20 --min-read-length 10   -1  SRR5063143.fastq  -o  SRR5063143_chromap.bed
 
-#source /grid/genomicscourse/home/shared/conda/miniconda3/bin/activate
-conda activate chromap
-
-cd $dir
-for SAMPLE_ID in `cat $list`; do
-# map using chromap, output is bed file
-chromap --preset chip -x $index -r $genome -q 20 --min-read-length 10   -1  ${SAMPLE_ID}.fastq  -o  ${SAMPLE_ID}_chromap.bed
-done
-conda activate basic_tools
-dos2unix *.bed
+dos2unix SRR5063143_chromap.bed
 ```
 - Flags:
 **--preset chip**:Mapping chip reads
@@ -150,94 +141,36 @@ dos2unix *.bed
 Before you can convert to bams, you will need to calculate the size of each chromosome. <br />
 We are only using chromosome 22, but the same commands will work with any genome.
 ```bash
-datadir="/grid/genomicscourse/home/beuchat/CSHL_Chromatin_Workshop_2024"
-cd ${datadir}/genome
-conda activate basic_tools
-samtools faidx hg38_chr22.fa
-cut -f1,2 hg38_chr22.fa.fai > sizes.genome
-cat sizes.genome
+samtools faidx -o chr22Only_GRCh38_faidx /scratch.global/ljmills/GCD8141/chr22Only/Homo_sapiens.GRCh38.dna.chromosome.22.fa 
+cut -f1,2 chr22Only_GRCh38_faidx  > chr22sizes.genome
+cat chr22sizes.genome
 ``` 
 
 Now you can actually convert to the bam files for peak calling.
 ```bash
-#THESE ARE INCOMPLETE PATHS, YOU NEED TO ADD TO THEIR BEGINNING
-datadir="/grid/genomicscourse/home/beuchat/CSHL_Chromatin_Workshop_2024"
-dir=${datadir}/data/subset
-genome=${datadir}/genome/hg38_chr22.fa #genome
-index=${datadir}/genome/index #index
-list=${datadir}/data/subset/sample.txt
-size=${datadir}/genome/sizes.genome #size of chrm
-##
-
-cd $dir
-
-# source /grid/genomicscourse/home/shared/conda/miniconda3/bin/activate
-conda activate basic_tools
-
-for SAMPLE_ID in `cat $list`; do
-#convert alignments to BAM
-        bedtools bedtobam  -i ${SAMPLE_ID}_chromap.bed -g $size > ${SAMPLE_ID}_chromap.bam #input files are the same from chromap
-done
+bedtools bedtobam  -i SRR5063143_chromap.bed -g chr22sizes.genome > SRR5063143_chromap.bam
 ```
 
 
 2.3.2) Sort .**bam** & index generation **.bai** & convert to ***.bw** (*Big*Wig*) *~3min*  <br />
-```bash
-datadir="/grid/genomicscourse/home/beuchat/CSHL_Chromatin_Workshop_2024"
-dir=${datadir}/data/subset
-genome=${datadir}/genome/hg38_chr22.fa #genome
-index=${datadir}/genome/index #index
-list=${datadir}/data/subset/sample.txt
-size=${datadir}/genome/sizes.genome #size of chrm
-##
-cd $dir
-
-#source miniconda3/bin/activate
-conda activate basic_tools
-
-for SAMPLE_ID in `cat sample.txt`; do
-##sort
-  samtools sort ${SAMPLE_ID}_chromap.bam -@ ${NSLOTS}  -o ${SAMPLE_ID}_chromap_sorted.bam
-##remove
-#samtools index ${SAMPLE_ID}_CT_chromap_sorted.bam
-#samtools idxstats ${SAMPLE_ID}_CT_chromap_sorted.bam | cut -f1 | grep -v Mt | xargs samtools view -b ${SAMPLE_ID}_chromap_sorted.bam > ${SAMPLE_ID$
-##sort
-  samtools sort ${SAMPLE_ID}_chromap_sorted.bam -@ ${NSLOTS}  -o ${SAMPLE_ID}_treat.bam
-##convert to bw
-  samtools index ${SAMPLE_ID}_treat.bam
-  conda activate deeptools
-  bamCoverage -p max -b ${SAMPLE_ID}_treat.bam  --normalizeUsing RPKM  -v  -o ${SAMPLE_ID}_norm.bw ##you can use this on the genome browser
-  conda activate basic_tools
-done
-```
 create an index, convert bam to bw, & normalize data RPKM (deeptools) <br />
-
-- **Extra** Remove the Chrm MT; &#x1F538; Should read the Mt in the reference genome *(check the reference and annotation genome)*; idxstats: create the index. <br />
-Chromosome MT (Mitochondrial) can cause noise in the *calling peaks* should remove from the *.bam files  <br />
-*DO NOT RUN* <br />
-```
-## Hi don't run me.
-samtools index ${sorted.bam.file} 
-samtools idxstats ${sorted.bam.file} | cut -f1 | grep -v Mt | xargs samtools view -b ${sorted.bam.file}  > ${sorted-noMT.bam.file}
+```bash
+samtools sort -o SRR5063143_chromap.sort.bam SRR5063143_chromap.bam
+samtools index SRR5063143_chromap.sort.bam
+###generate a bigWig file you can visulize in a genome browser 
+bamCoverage -p max -b SRR5063143_chromap.sort.bam --normalizeUsing RPKM -v -o SRR5063143_chromap.norm.bw ##you can use this on the genome browser
 ```
 
- **check files**: Output file (*BAM format*); 
- - *Check the bigwig files in the genome browser*  <br />
-`samtools view SRR5063143_naive_H3K27ac_chromap.bam | head -n 5` <br />
-- Use the IGV app: https://igv.org/app/  <br />
-- Select the hg38 genome and select the chromosome 22 *(chr22)* <br />
-- download the *.bw files from the HPC to your personal PC *can use SCP or STFP*  <br />
-***Whatever method to get files onto your computer is fine*** <br />
-- upload the *.bw in the *track* function  <br />
-- Let's have fun!! check the **FBXO7** gene  <br />
-  *https://useast.ensembl.org/Homo_sapiens/Gene/Summary?g=ENSG00000100225;r=22:32474676-32498829
-  *chr22:32474676-32498829   <br />
+
+## You ran all of this for 1 file but how do you effectively run all of these steps for all of your files?
+You write a script and submit a job to MSI. I have a script started that you can edit to run these steps on all 6 of your FASTQ files. `cp /scratch.global/ljmills/GCD8141/chromatinWorkshop.sh <your directory>`
  
 ## 3) Peak Calling 
 **MACS2** the Model-based Analysis of ChIP-Seq (MACS) for chormatin data analysis https://pypi.org/project/MACS2/ <br />
 **Analysis for ChIP-seq; ATAC-seq; Cut&Tag**. *The parameters depend on the data type.*  <br />
 
-- Histone modification" *H3K27ac:* broad peaks; *H3K4me3* narrow peaks. <br />   
+- Histone modification" *H3K27ac:* broad peaks; *H3K4me3* narrow peaks. <br />
+- Which marks are broad vs narrow? https://www.encodeproject.org/chip-seq/histone/#histone
 
 macs2 *~2 min* <br />  
 
@@ -292,6 +225,16 @@ mv ${peakfile} ${peakfile//\.narrowPeak/\.Peak}
 done
 
 
+```
+
+
+- **Extra** Remove the Chrm MT; &#x1F538; Should read the Mt in the reference genome *(check the reference and annotation genome)*; idxstats: create the index. <br />
+Chromosome MT (Mitochondrial) can cause noise in the *calling peaks* should remove from the *.bam files  <br />
+*DO NOT RUN* <br />
+```
+## Hi don't run me.
+samtools index ${sorted.bam.file} 
+samtools idxstats ${sorted.bam.file} | cut -f1 | grep -v Mt | xargs samtools view -b ${sorted.bam.file}  > ${sorted-noMT.bam.file}
 ```
 
 

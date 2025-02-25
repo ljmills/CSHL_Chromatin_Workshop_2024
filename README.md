@@ -165,101 +165,70 @@ bamCoverage -p max -b SRR5063143_chromap.sort.bam --normalizeUsing RPKM -v -o SR
 
 
 ## You ran all of this for 1 file but how do you effectively run all of these steps for all of your files?
-You write a script and submit a job to MSI. I have a script started that you can edit to run these steps on all 6 of your FASTQ files. `cp /scratch.global/ljmills/GCD8141/chromatinWorkshop.sh <your directory>`
+You write a script and submit a job to MSI. I have a script started that you can edit to run these steps on all 6 of your FASTQ files. `cp /scratch.global/ljmills/GCD8141/classExampleScripts/chromatinWorkshop.sh <your directory>`
  
 ## 3) Peak Calling 
 **MACS2** the Model-based Analysis of ChIP-Seq (MACS) for chormatin data analysis https://pypi.org/project/MACS2/ <br />
 **Analysis for ChIP-seq; ATAC-seq; Cut&Tag**. *The parameters depend on the data type.*  <br />
 
-- Histone modification" *H3K27ac:* broad peaks; *H3K4me3* narrow peaks. <br />
+- Histone modification" *H3K27me3:* broad peaks; *H3K4me3, H3K27ac* narrow peaks. <br />
 - Which marks are broad vs narrow? https://www.encodeproject.org/chip-seq/histone/#histone
+- You *NEED* a input control (-c) and your mark of interest (-t) to call peaks effectivly.
+- Alignments for input controls can be found in `/scratch.global/ljmills/GCD8141/classAlignments`. copy them into your working directory
 
 macs2 *~2 min* <br />  
 
 ```bash
-#source /grid/genomicscourse/home/shared/conda/miniconda3/bin/activate
-conda activate macs2
+# input 1
+cp /scratch.global/ljmills/GCD8141/classAlignments/SRR5063153.chromap.sort.bam <your directory>
+cp /scratch.global/ljmills/GCD8141/classAlignments/SRR5063154.chromap.sort.bam <your directory>
 
-input_combinations_broad=(
-"SRR5063143_naive_H3K27ac_treat.bam,SRR5063153_naive_input_treat.bam"
-"SRR5063144_naive_H3K27ac_treat.bam,SRR5063154_naive_input_treat.bam"
-)
+input1=SRR5063153.chromap.sort.bam
+input2=SRR5063154.chromap.sort.bam
 
-input_combinations_narrow=(
-"SRR5063149_naive_H3K4me3_treat.bam,SRR5063153_naive_input_treat.bam"
-"SRR5063150_naive_H3K4me3_treat.bam,SRR5063154_naive_input_treat.bam"
-)
+#H3K27ac narrow peak calling mode
+macs2 callpeak \
+-t SRR5063143.chromap.sort.bam \
+-c $input1 \
+-f BAM \
+-g hs \
+--nomodel --shift -100 \
+--extsize 200 \
+-n Naive_H3K27ac_rep1 \
+--outdir <your directory>
 
+#calculate FRiP (fraction of reads in peaks) 
+readsInSample=$(samtools view -c SRR5063143.chromap.sort.bam)
+readsInPeaks=$(bedtools intersect -u -a SRR5063143.chromap.sort.bam -b Naive_H3K27ac_rep1_peaks.narrowPeak -ubam | samtools view -c)
+frip_score=$(echo "scale = 6; ${readsInPeaks} / ${readsInSample}" | bc)
+echo -e "Naive_H3K27ac_rep1\t${frip_score}" >> FRiP_scores.tsv
 
-for files in ${input_combinations_broad[@]}; do
+#H3K27me3 broad peak calling mode
+#H3K27me3
+macs2 callpeak \
+-t SRR5063145.chromap.sort.bam \
+-c $input1 \
+-f BAM \
+-g hs \
+--nomodel --shift -100 \
+--extsize 200 \
+-n Naive_H3K27me3_rep1 \
+--broad \
+--outdir <your dirctory> 
 
-IFS=',' read -r file1 file2 <<< $files
-##macs2-broad
-macs2 callpeak  -t  $file1 -c $file2 \
-        -f BAM  -g hs --nomodel --shift -100 --extsize 200 \
-        -n ${file1%_treat.bam} --broad \
-        --outdir . 2> ${file1%_treat.bam}_broad_macs2.log
-done
-
-
-for files in ${input_combinations_narrow[@]}; do
-
-IFS=',' read -r file1 file2 <<< $files
-##macs2-narrow
-macs2 callpeak  -t  $file1 -c $file2 \
-        -f BAM  -g hs  --shift -100 --extsize 200 \
-        -n ${file1%_treat.bam}  \
-        --outdir . 2> ${file1%_treat.bam}_narrow_macs2.log
-
-done
-
-#MACS outputs the peak files in .narrowPeak or .broadPeak format.
-#I would usually recommend clearly keeping the labels on these so you don't lose track,
-#but for downstream convenience we will rename them today.
-for peakfile in `ls *.broadPeak`
-do
-mv ${peakfile} ${peakfile//\.broadPeak/\.Peak}
-done
-
-for peakfile in `ls *.narrowPeak`
-do
-mv ${peakfile} ${peakfile//\.narrowPeak/\.Peak}
-done
-
+readsInSample=$(samtools view -c SRR5063145.chromap.sort.bam)
+readsInPeaks=$(bedtools intersect -u -a SRR5063145.chromap.sort.bam -b Naive_H3K27me3_rep1_peaks.broadPeak -ubam | samtools view -c)
+frip_score=$(echo "scale = 6; ${readsInPeaks} / ${readsInSample}" | bc)
+echo -e "Naive_H3K27me3_rep1\t${frip_score}" >> FRiP_scores.tsv
 
 ```
 
-
-- **Extra** Remove the Chrm MT; &#x1F538; Should read the Mt in the reference genome *(check the reference and annotation genome)*; idxstats: create the index. <br />
-Chromosome MT (Mitochondrial) can cause noise in the *calling peaks* should remove from the *.bam files  <br />
-*DO NOT RUN* <br />
-```
-## Hi don't run me.
-samtools index ${sorted.bam.file} 
-samtools idxstats ${sorted.bam.file} | cut -f1 | grep -v Mt | xargs samtools view -b ${sorted.bam.file}  > ${sorted-noMT.bam.file}
-```
-
+- Again this is very laborous to write out for each input/treamtent pair. How do you keep track of what goes with what? While these peak calling jobs are fast it will take more time with the whole genome.
+- Write a script to run these commands. Example script `/scratch.global/ljmills/GCD8141/classExampleScripts/callPeaks_FRiP.sh`
 
 ##QC Analysis *~ 3 min* 
 **Fraction of reads in peaks (FRiP):** FRiP Score essential to evaluate the Peaks Quality. *more details:* https://yiweiniu.github.io/blog/2019/03/Calculate-FRiP-score/ <br />
-- Request data: *.bam files & *Peaks files (Narrow or broad)
-
-```bash
-
-conda activate basic_tools
-for peakfile in `ls *.Peak`; do
-
-readfile=${peakfile//_peaks.Peak/_chromap_sorted.bam}
-
-reads=$(samtools view -c ${readfile})
-reads_peaks=$(bedtools intersect -u -a ${readfile} -b ${peakfile} -ubam | samtools view -c)
-
-frip_score=$(echo "scale = 6; ${reads_peaks} / ${reads}" | bc)
-
-echo -e "${peakfile//_peaks.Peak/}\t${frip_score}"
-done
-
-``` 
+- take a look at the FRiP_scores.tsv file you generated 
 
 These FRiP values are terrible! Usually we would want a FRiP score of at least .2 or so. <br />
 However, these are very subsampled, and only one chromosome is present, so it will be good for now.
@@ -269,58 +238,34 @@ However, these are very subsampled, and only one chromosome is present, so it wi
 **1)** deeptools:Correlation and Heatmap plots. Correlation matrix bewteen the replicates (*QC analysis*) and Heatmap (*visualize the signal intensity:Input; HK3me4;HK27ac*)  *~ 20 min* <br /> 
 
 ```bash
-datadir="/grid/genomicscourse/home/beuchat/CSHL_Chromatin_Workshop_2024"
-dir=${datadir}/data/subset
-
-cd ${dir}
-mkdir -p consensus_matrixes/
-mkdir -p deeptools_graphs/
-
-#source /grid/genomicscourse/home/shared/conda/miniconda3/bin/activate
-conda activate deeptools
 
 multiBigwigSummary bins -b *norm.bw -o bw_corr.npz -p ${NSLOTS}
 
-plotCorrelation -in bw_corr.npz -c spearman -p heatmap -o deeptools_graphs/correlation_heatmap.pdf
-#plotCorrelation -in bw_corr.npz -c spearman -p scatterplot -o deeptools_graphs/correlation_scatterplot.pdf
+plotCorrelation -in bw_corr.npz -c spearman -p heatmap -o correlation_heatmap.pdf
+plotCorrelation -in bw_corr.npz -c spearman -p scatterplot -o correlation_scatterplot.pdf
 
 ```
 Now to visualize the peak files
 
 ```bash
-datadir="/grid/genomicscourse/home/beuchat/CSHL_Chromatin_Workshop_2024"
-dir=${datadir}/data/subset
+#H3K27ac
+bamCompare -b1 SRR5063143.chromap.sort.bam \
+-b2 SRR5063153.chromap.sort.bam \
+-o H3K27ac_rep1_differential.bw
 
-cd ${dir}
+computeMatrix scale-regions  \
+-S H3K27ac_rep1_differential.bw \
+-R Naive_H3K27ac_rep1_peaks.narrowPeak \
+ -b 3000 -a 3000 \
+-o Naive_H3K27ac_rep1_peaks.matrix
 
-mkdir -p consensus_matrixes/
-mkdir -p deeptools_graphs/
-
-#source /grid/genomicscourse/home/shared/conda/miniconda3/bin/activate
-conda activate deeptools
-
-input_combinations=(
-"SRR5063143_naive_H3K27ac_treat.bam,SRR5063153_naive_input_treat.bam"
-"SRR5063144_naive_H3K27ac_treat.bam,SRR5063154_naive_input_treat.bam"
-"SRR5063149_naive_H3K4me3_treat.bam,SRR5063153_naive_input_treat.bam"
-"SRR5063150_naive_H3K4me3_treat.bam,SRR5063154_naive_input_treat.bam"
-)
-
-for files in ${input_combinations[@]}; do
-
-IFS=',' read -r file1 file2 <<< $files
-
-bamCompare -b1 ${file1} -b2 ${file2} -o ${file1//_treat\.bam/_differential}.bw
-peakfile=${file1//_treat.bam/_peaks\.Peak}
-bw_file=$(echo ${file1//_treat\.bam/_differential}.bw)
-
-computeMatrix scale-regions -p ${NSLOTS} -S ${bw_file} -R ${peakfile} -b 3000 -a 3000 \
-        -o consensus_matrixes/${peakfile//_peaks\.Peak/\.matrix}
-
-plotHeatmap -m consensus_matrixes/${peakfile//_peaks\.Peak/\.matrix} -o deeptools_graphs/${peakfile//_peaks\.Peak/\.pdf} \
-        --dpi 300 --startLabel "Peak Start" --endLabel "Peak End" -x "Distance" --heatmapWidth 12 --regionsLabel "Peaks"
-
-done
+plotHeatmap -m Naive_H3K27ac_rep1_peaks.matrix \
+ -o Naive_H3K27ac_rep1_peaks.heatmap.pdf \
+--dpi 300 \
+--startLabel "Peak Start" \
+--endLabel "Peak End" \
+-x "Distance" \
+--heatmapWidth 12 --regionsLabel "Peaks"
 
 ```
 
@@ -331,22 +276,36 @@ More quantitative methods are available, such as through diffbind. <br />
 However, presence/absence is still great to get a good idea about your data. <br />
 
 ```bash
-conda activate basic_tools
 #how many peaks do we have?
-wc -l SRR5063143_naive_H3K27ac_peaks.Peak
-wc -l SRR5063149_naive_H3K4me3_peaks.Peak
+wc -l Naive_H3K27ac_rep1_peaks.narrowPeak
+wc -l Naive_H3K27me3_rep1_peaks.broadPeak
 
 #the following command keeps only peaks present in both files.
-bedtools intersect -a SRR5063143_naive_H3K27ac_peaks.Peak -b SRR5063149_naive_H3K4me3_peaks.Peak > out.bed
-wc -l out.bed
+bedtools intersect -a Naive_H3K27ac_rep1_peaks.narrowPeak \
+-b Naive_H3K27me3_rep1_peaks.broadPeak > overlapingPeaks_Naive_H3K27ac_Naive_H3K27me3.bed
+
+wc -l overlapingPeaks_Naive_H3K27ac_Naive_H3K27me3.bed
+
 #the following command keeps only peaks present in file 1 but not 2
-bedtools intersect -v -a SRR5063143_naive_H3K27ac_peaks.Peak -b SRR5063149_naive_H3K4me3_peaks.Peak > out.bed
-wc -l out.bed
+bedtools intersect -v -a Naive_H3K27ac_rep1_peaks.narrowPeak \
+-b Naive_H3K27me3_rep1_peaks.broadPeak > Naive_H3K27ac_only.bed
+wc -l Naive_H3K27ac_only.bed
+
 #the following command keeps only peaks present in file 2 but not 1
-bedtools intersect -v -b SRR5063143_naive_H3K27ac_peaks.Peak -a SRR5063149_naive_H3K4me3_peaks.Peak > out.bed
-wc -l out.bed
+bedtools intersect -v -a Naive_H3K27me3_rep1_peaks.broadPeak \
+-b Naive_H3K27ac_rep1_peaks.narrowPeak > Naive_H3K27me3_only.bed
+wc -l Naive_H3K27me3_only.bed
 
 ```
 
 ##
+
+- **Extra** Remove the Chrm MT; &#x1F538; Should read the Mt in the reference genome *(check the reference and annotation genome)*; idxstats: create the index. <br />
+Chromosome MT (Mitochondrial) can cause noise in the *calling peaks* should remove from the *.bam files  <br />
+*DO NOT RUN* <br />
+```
+## Hi don't run me.
+samtools index ${sorted.bam.file} 
+samtools idxstats ${sorted.bam.file} | cut -f1 | grep -v Mt | xargs samtools view -b ${sorted.bam.file}  > ${sorted-noMT.bam.file}
+```
 

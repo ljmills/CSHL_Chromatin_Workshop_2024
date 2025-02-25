@@ -143,7 +143,7 @@ dos2unix SRR5063143_chromap.bed
 Before you can convert to bams, you will need to calculate the size of each chromosome. <br />
 We are only using chromosome 22, but the same commands will work with any genome.
 ```bash
-samtools faidx -o chr22Only_GRCh38_faidx /scratch.global/ljmills/GCD8141/chr22Only/Homo_sapiens.GRCh38.dna.chromosome.22.fa 
+samtools faidx --fai-idx chr22Only_GRCh38_faidx /scratch.global/ljmills/GCD8141/chr22Only/Homo_sapiens.GRCh38.dna.chromosome.22.fa 
 cut -f1,2 chr22Only_GRCh38_faidx  > chr22sizes.genome
 cat chr22sizes.genome
 ``` 
